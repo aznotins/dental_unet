@@ -12,10 +12,10 @@ class myUnet(object):
         self.img_rows = img_rows
         self.img_cols = img_cols
 
-    def load_data(self):
+    def load_data(self, train_dir, test_dir):
         mydata = dataProcess(self.img_rows, self.img_cols)
-        imgs_train, imgs_mask_train = mydata.load_train_data()
-        imgs_test = mydata.load_test_data()
+        imgs_train, imgs_mask_train = mydata.load_data(train_dir)
+        imgs_test = mydata.load_test_data(test_dir)
         return imgs_train, imgs_mask_train, imgs_test
 
     def get_unet(self):
@@ -50,7 +50,8 @@ class myUnet(object):
             UpSampling2D(size=(2, 2))(drop5))
         up6 = Cropping2D(cropping=((1, 0), (0, 0)))(up6)
         print("up6 shape:", up6.shape)
-        merge6 = merge([drop4, up6], mode='concat', concat_axis=3)
+        # merge6 = merge([drop4, up6], mode='concat', concat_axis=3)
+        merge6 = concatenate([drop4, up6], axis=3)
         conv6 = Conv2D(512, 3, activation='relu', padding='same', kernel_initializer='he_normal')(merge6)
         conv6 = Conv2D(512, 3, activation='relu', padding='same', kernel_initializer='he_normal')(conv6)
 
@@ -86,13 +87,17 @@ class myUnet(object):
 
         model = Model(input=inputs, output=activation)
 
+
         model.compile(optimizer=Adam(lr=1e-4), loss='categorical_crossentropy', metrics=['accuracy'])
+
+        print(model.summary())
+        print(model.get_config())
 
         return model
 
     def train(self):
         print("loading data")
-        imgs_train, imgs_mask_train, imgs_test = self.load_data()
+        imgs_train, imgs_mask_train, imgs_test = self.load_data('files/train_ds', 'files/test_ds')
         print("loading data done")
         model = self.get_unet()
         print("got unet")
@@ -108,6 +113,6 @@ class myUnet(object):
 
 
 if __name__ == '__main__':
-    myunet = myUnet()
+    myunet = myUnet(640, 640)
     myunet.train()
 
